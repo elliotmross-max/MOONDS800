@@ -1,0 +1,19 @@
+{
+  "id": "moonds800",
+  "name": "MOON DS800",
+  "abbrev": "DS8",
+  "version": "0.1.0",
+  "description": "Polyphonic analogue voice after the Yamaha CS-80 and the ARP 2600.",
+  "author": "Moongriffin",
+  "dsp": "dsp.so",
+  "api_version": 2,
+  "component_type": "sound_generator",
+  "capabilities": {
+    "audio_out": true,
+    "midi_in": true,
+    "midi_out": false,
+    "aftertouch": true,
+    "chainable": true,
+    "component_type": "sound_generator"
+  }
+}
