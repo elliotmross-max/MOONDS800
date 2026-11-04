@@ -2,7 +2,7 @@
   "id": "moonds800",
   "name": "MOON DS800",
   "abbrev": "DS8",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Four-voice analogue polysynth with five sound sources per voice. Two oscillators, each with a triangle wavefolder and a symmetry control for harmonic edge, plus a ring modulator, a sub oscillator and white, pink or low-frequency noise. A resonant lowpass ladder filter with its own contour and key tracking. Each key responds to pressure on its own, so leaning into one pad opens that note's filter and leaves the others untouched. Six-slot modulation matrix with any source to any destination, two free-running LFOs, and a stepped sample-and-hold on a 0.2 to 100 Hz clock.",
   "author": "Moongriffin",
   "dsp": "dsp.so",
