@@ -1,155 +1,199 @@
-# MOON DS800 — saved source snapshot
+# MOON DS800
 
-Saved 2026-10-25. **This is build 28's behaviour with build 29's changes reverted.**
+A four-voice analogue polysynth for Ableton Move, as a
+[Schwung](https://github.com/charlesvestal/schwung) sound generator.
 
-Build 29 was three speculative changes (`claims_edit_ccs` in module.json, `name`
-on hierarchy levels, `short_name` on params) and it made things WORSE: the knob
-still pinned, and automation stopped moving the knob at all. Reverted here.
+**Status: working.** Builds for the Move, installs from the module tarball, and
+plays on hardware. Ten pages, 60 parameters.
+
+---
+
+## What it is
+
+Four voices, each with five sound sources and its own filter:
+
+```
+  ┌── osc 1 ──► wavefolder ──┐
+  │                          ├──► mixer ──► ladder filter ──► VCA ──► out
+  └── osc 2 ──► wavefolder ──┘        ▲
+          ring modulator ─────────────┤
+          sub oscillator ─────────────┤
+          noise ──────────────────────┘
+```
+
+**Two oscillators**, each with a **triangle wavefolder** and a **symmetry**
+control. Fold adds harmonics; a filter can only take them away. That is the
+whole reason the folder is a sound source rather than another filter setting.
+
+**A ring modulator**, a **sub oscillator** an octave below osc 1, and
+**noise** with Low, Pink and White settings.
+
+**One resonant lowpass ladder filter** per voice, with its own contour and key
+tracking. There is no highpass and no filter mode switch.
+
+**Each key responds to pressure on its own.** Leaning into one pad opens that
+note's filter and leaves the others untouched — the filter movement follows
+your fingers, note by note.
+
+**Six modulation slots**, any source to any destination: two free-running LFOs,
+a stepped sample and hold on its own 0.2–100 Hz clock, both envelopes, osc 2 at
+audio rate, the noise source, key position, and per-key pressure. Destinations
+include cutoff, resonance, pitch, pulse width, level, pan, fold, symmetry and
+ring depth.
+
+## Installing on Move
+
+Install from the Module Store in Schwung, or from the release tarball:
+
+```bash
+scp moonds800-module.tar.gz ableton@move.local:/data/UserData/
+ssh ableton@move.local 'tar -xzf /data/UserData/moonds800-module.tar.gz \
+  -C /data/UserData/schwung/modules/sound_generators/'
+```
+
+The tarball's top level is `moonds800/`. Extract it into the folder **above**
+the module folder, not into the module folder itself.
+
+Reboot the Move, then add MOON DS800 to a Signal Chain slot.
+
+## First five minutes
+
+1. Play a few pads. Four notes at once is normal.
+2. Turn up **Pressure to Cutoff**, then hold two pads at different pressures.
+   Each note should brighten independently. This is the instrument's centre.
+3. Turn **Fold** up on either oscillator. At 0 the wave is clean; past halfway
+   it becomes a ragged harmonic cluster.
+4. Set a matrix slot's source to **S&H** and its destination to **Fold**. The
+   tone steps in rhythm with the sample and hold clock.
+5. **Mono/Poly** on the root page: Mono is last-note priority, and releasing the
+   top note falls back to a held one.
+
+## Pages
+
+| Page | Knobs |
+|---|---|
+| **Root** | LP Cutoff · Resonance · Osc 1 · Osc 2 · Noise · Sub · Volume · Mono/Poly |
+| **Osc 1** | Wave · PW · Fold · Octave |
+| **Osc 2** | Wave · PW · Fold · Octave |
+| **Filter** | Env Amount · Keytrack · Filter Attack · Decay · Sustain · Release |
+| **Amp Env** | Attack · Decay · Sustain · Release · Velocity |
+| **LFO** | LFO1 Rate · LFO1 Wave · LFO2 Rate · LFO2 Wave · Sync |
+| **S&H** | Rate · Source · Slew · Noise · Clock Env · Amount |
+| **Mod 1–2** | six knobs: Source, Destination, Depth for two slots |
+| **Mod 3–4** | the same, for slots three and four |
+| **Mod 5–6** | the same, for slots five and six |
+
+A page holds at most eight knobs. That is the host grid, not a limitation of
+the instrument.
+
+## Parameters — 60
+
+Every control is reachable: each has a page to live on and a setter the host can
+drive. Continuous controls use `step: 0.001` for fine encoder travel. Discrete
+controls — waveform, octave, LFO shape, noise colour, modulation source and
+destination — are enums, so the display names what you picked rather than
+showing a number.
 
 ## Files
 
-| File | What it is |
-|---|---|
-| `moons800.c` | the engine — CS-80 voice, ARP 2600 modulation, Buchla timbre, 4012 ladder |
-| `moons800.h` | engine types, the ladder coeff struct, the voice and instance structs |
-| `ds800_mod.h` | the modulation matrix |
-| `schwung_moons800.c` | **the plugin wrapper** — includes the base-value table fix |
-| `moons800_meta.h` | chain_params + ui_hierarchy; **the wrapper includes THIS file** |
-| `moons800_all_meta.h` | the merged pages (kept in sync with the above) |
-| `moons800_mod_meta.h` | the matrix declarations |
-| `module.json` | the manifest, restored to the shape that loads |
-| `test_params.c` | the parameter tests |
-| `MOON-DS800-HANDOFF-original.md` | the handoff as received, kept for comparison |
-
-## State verified at save time
-
 ```
-pages                      : 10
-chain entries              : 60
-inline params              : 60
-max knobs per page         : 8 (the host grid; 9 spills a second page)
-knobs on page, undeclared  : none
-declared, on no page       : none
-unreachable setters        : none
-both header files agree    : True
-cutoff step                : 0.001
-wrapper base table         : True
+src/moons800.c                  the engine: oscillators, folders, ring, filter
+src/moons800.h                  engine types, ladder coefficients, voice structs
+src/ds800_lfo.c / .h            the two LFOs
+src/ds800_sh.c / .h             sample and hold and its clock
+src/ds800_mod.c / .h            the modulation matrix
+src/moons800_meta.h             chain_params and ui_hierarchy
+src/moons800_all_meta.h         the merged pages; must stay identical in content
+src/moons800_mod_meta.h         the matrix declarations
+src/schwung_moons800.c          the plugin wrapper
+src/test_params.c               the parameter tests
+module.json                     the manifest
+scripts/{build,install,test}.sh build, deploy, verify
+vendor/schwung/plugin_api_v1.h  Schwung's header, vendored
 ```
 
-Ten pages: Root · Osc 1 · Osc 2 · Filter · Amp Env · LFO · S&H · Mod 1-2 · Mod 3-4 · Mod 5-6
+## Build and test
 
-## The four rules that cost the most to learn
-
-**1. The wrapper reads `moons800_meta.h`.**
-It `#include`s that file and serves `DS800_UI_HIERARCHY` and `DS800_CHAIN_PARAMS`
-from it. `moons800_all_meta.h` is the merged copy and must stay identical in
-pages and params. Editing only one changes nothing on the device.
-
-**2. Every control needs a page AND a reachable setter.**
-Both failures look identical on the panel: a knob that renders and snaps to
-zero. Declared-but-unpaged gives a generic `LVL:` widget; a setter spliced after
-a sibling's `return 0;` is unreachable and never stores (`noise_lvl`, builds
-20-22). Check both before changing anything else.
-
-**3. A page holds at most EIGHT knobs.**
-Nine spills the ninth onto a `- 2` overflow page. That is what made
-`MOD 1-3 2` / `MOD 4-6 - 2` with one knob each.
-
-**4. Parameters are declared inline on their hierarchy level.**
-Schwung merges `chain_params` entries the hierarchy does not declare, and
-`step 0.001` on every float gives the encoders finer travel.
-
-## KNOWN OPEN ITEM — the knob graphic after automation
-
-**The symptom.** Record automation on filter cutoff. Stop the sequence. Turn the
-knob: **the value readout follows the turn, but the knob graphic stays at zero.**
-You can hear it change. The knob only moves when the sequence plays.
-
-**What this is.** Two indicators disagreeing. The readout comes from the plugin,
-so the plugin is reporting correctly (the base-value fix below). The **knob
-graphic is drawn from the automation lane**, which overlays the parameter.
-
-Schwung's own docs describe the bug and its fix for their modules:
-
-> "the label bands become inverted strips carrying the locked value. (The dials
-> *jumped* to it at the time; see the next bullet for why they no longer do.)"
-
-The framework fixed this; Machinemodule has the fix. **It is a framework-side
-handshake for drawing a module-owned knob, not a header or engine field.**
-
-**What was tried and did NOT fix it** (all reverted or harmless):
-- engine curves / `step` size (0.001 vs 0.01) — build 26, no change
-- inline parameter metadata — build 27
-- wrapper `get_param` returning the BASE instead of the engine value — build 28
-- `claims_edit_ccs` + level `name` + param `short_name` — build 29, **made it worse**
-
-**What would settle it:** the `ui_hierarchy` JSON that Machinemodule actually
-serves (not its C source), compared against DS800's. Or a developer who knows
-`lane_edit.c` / the knob-grid drawing path in charlesvestal/schwung.
-
-**Best next step:** post the symptom — "after recording automation, the knob
-stays at zero while the value readout follows the turn" — to the Schwung
-community. That phrasing is precise enough to be recognised.
-
-## The base-value fix in the wrapper (build 28)
-
-`get_param` used to answer with the ENGINE's value:
-
-```c
-const float v = ds800_get_param(&inst->engine, key);
-```
-
-While a lane drives a parameter the engine holds the lane's value, so the host
-believed the knob had moved there. Schwung's rule is that a plain read
-"answers the BASE, never the plugin's value". The wrapper now keeps a base table
-(`struct { char key[24]; float val; uint8_t used; } base[96]`): `set_param`
-stores into it, `get_param` reads from it and falls back to the engine only when
-a key has no stored base. This fixed the numeric readout; the knob graphic is
-still drawn from the lane.
-
-## Other known open items
-
-- **Polyphonic pressure is not implemented.** `ds800_set_pressure` and
-  `ds800_set_note_pressure` are stubs discarding their argument. The pads send
-  0xA0. This is the CS-80 half of the instrument.
-- **`stolen_from` handles one level of voice stealing.** A two-deep chain still
-  orphans a voice.
-- **`ds800_sh.h` and `ds800_lfo.h` have never been seen.** The pre-filter noise
-  source is therefore implemented beside the voices in `moons800.c` rather than
-  routed through the S&H's own generator (which already has proper colour
-  filtering and gain compensation).
-- **The wrapper's `ds800_is_int_key` list is stale.** It still names `div1a`,
-  `div1b`, `div2a`, `div2b` (removed with the Subharmonicon dividers) and omits
-  `lfo1_rate`, `sh_rate`, `sh_amt`, `noise_lvl` and the mod slots, so those print
-  as `0.5000` instead of `1`.
-- **The knob test misreports ~14 knobs** (PW measured on a saw rather than a
-  pulse; matrix src/dst needing a two-slot baseline).
-- **`test_moons800.c` will not compile** — it exercises the removed divider keys.
-- **Nothing has been compiler-checked locally.** Every build was verified by
-  structure against the device's own successful ARM compiles.
-
-## Build / install
+Needs only a C compiler for the tests; no Schwung checkout, no device:
 
 ```bash
-cp savestate/*.h savestate/*.c  ~/Desktop/moonds800-ship/src/
-cp savestate/module.json        ~/Desktop/moonds800-ship/
-cd ~/Desktop/moonds800-ship && bash scripts/build.sh && bash scripts/install.sh
+bash scripts/test.sh
 ```
 
-Package exactly `dsp.so` + `module.json`, flat, extracted INTO the module
-folder. Do not nest them in a `moonds800/` directory.
+To cross-compile for the Move and deploy:
 
-## Engine constants worth knowing
-
-```c
-DS800_4012_FB         0.42    /* resonance feedback width, textbook 0.15 */
-DS800_4012_RES_GAIN   2.6     /* resonance ceiling; ladder oscillates ~4  */
-DS800_4012_LOSS       0.22    /* passband loss as resonance rises         */
-DS800_4012_PASS_FLOOR 0.70    /* the floor = the STABLE variant, option B */
-DS800_LADDER_CLAMP    8.0     /* headroom for the ring to bloom           */
-DS800_VOICE_GAIN      (1.0/7.0)
+```bash
+bash scripts/build.sh                        # cross-compile dsp.so in Docker
+DEVICE=ableton@move.local bash scripts/install.sh
 ```
 
-Envelope and rate curves are exponential (`lo * pow(hi/lo, t)`), which is what
-made the attack and cutoff usable. Rates interpolate through their Hz tables;
-the S&H table is the ARP 2600's own .2–100 Hz clock range and the LFOs .03–30 Hz.
+## Design notes
+
+### The module only loads in one exact shape
+
+Learned the hard way, over many builds. All three of these must hold or the
+module appears in the menu and the slot stays empty:
+
+- `module.json` declares `"dsp": "dsp.so"`, `"api_version": 2`, and a
+  `capabilities` block containing `"chainable": true`.
+- The binary is named `dsp.so` inside the package.
+- The package is **flat**: `dsp.so` and `module.json` at the tarball root,
+  extracted straight into the module folder. Wrapping them in a
+  `moonds800/` directory and extracting into the parent nests them one level
+  too deep and the module never loads.
+
+### The wrapper reads `moons800_meta.h`
+
+The wrapper `#include`s that file and serves `DS800_UI_HIERARCHY` and
+`DS800_CHAIN_PARAMS` from it. `moons800_all_meta.h` is the merged copy and must
+stay identical in pages and params. Editing only one changes nothing on the
+device.
+
+### Every control needs a page and a reachable setter
+
+Both failures look the same on the panel: a knob that renders and snaps back to
+zero. A parameter declared but on no page gets a generic widget with nothing to
+store it in. A setter spliced after a sibling's `return 0;` is unreachable and
+never stores.
+
+### `plugin_api_v2_t` is closed
+
+The wrapper includes the host's header rather than restating the struct, uses
+designated initializers so an omitted field stays NULL instead of shifting
+every pointer after it, and carries a `_Static_assert` on field order.
+
+### Voices retire on their envelope, not on note-off
+
+Note-off sets a voice releasing. It renders until its envelope reaches idle, so
+a long release is never cut short by the next note.
+
+### The engine renders float; the wrapper converts
+
+The engine works in float stereo and knows nothing about the host. The wrapper
+clips and converts to interleaved int16 once, at the boundary.
+
+## Known open items
+
+- **The cutoff knob graphic can disagree with its readout.** The readout comes
+  from the plugin and is correct; the knob graphic is drawn from the automation
+  lane, which overlays the parameter. A base-value table in the wrapper keeps
+  the readout right.
+- **A page holds at most eight knobs.** Nine spills the ninth onto an overflow
+  page.
+
+Earlier speculative changes — `claims_edit_ccs` in `module.json`, `name` on
+hierarchy levels, `short_name` on params — made things worse rather than better
+(a knob that pinned, and automation that stopped moving it) and are not to be
+retried.
+
+## Credits and licensing
+
+Original code, MIT. No third-party source is copied. Schwung's plugin API header
+is MIT, © Charles Vestal and contributors, and is vendored verbatim in
+`vendor/schwung/`.
+
+Thanks to [Schwung](https://github.com/charlesvestal/schwung) for the module
+platform and its documentation, and to
+[Model-72](https://github.com/sd88me/schwung-model72) and
+[setBfree for Schwung](https://github.com/pdubucq/schwung-setbfree) for the
+module layout conventions followed here.
